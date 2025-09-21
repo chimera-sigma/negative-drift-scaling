@@ -1,0 +1,9 @@
+{
+  "k": 10,
+  "dt": 0.1,
+  "batch": 64,
+  "roundtrip_l2_leapfrog": 2.975379516101384e-07,
+  "roundtrip_l2_euler": 0.6047583818435669,
+  "normalized_rt_error_leapfrog": 2.254770529743932e-08,
+  "normalized_rt_error_euler": 0.045829157914725624
+}

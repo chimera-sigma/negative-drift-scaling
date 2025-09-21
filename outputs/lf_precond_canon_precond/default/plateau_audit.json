@@ -1,0 +1,41 @@
+{
+  "ablation": "default",
+  "kind": "dt",
+  "report": [
+    {
+      "dt": 0.006,
+      "tail_median": 0.14090186907764668,
+      "runs": 3
+    },
+    {
+      "dt": 0.008,
+      "tail_median": 0.2662026716899071,
+      "runs": 3
+    },
+    {
+      "dt": 0.01,
+      "tail_median": 0.43740656803711264,
+      "runs": 3
+    },
+    {
+      "dt": 0.012,
+      "tail_median": 0.9837722486117206,
+      "runs": 3
+    },
+    {
+      "dt": 0.014,
+      "tail_median": 0.8579102625916732,
+      "runs": 3
+    },
+    {
+      "dt": 0.016,
+      "tail_median": 1.1547745480772713,
+      "runs": 3
+    }
+  ],
+  "meta": {
+    "epochs": 1,
+    "seeds": 3,
+    "mass_mode": "precond"
+  }
+}

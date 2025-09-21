@@ -1,0 +1,31 @@
+{
+  "ablation": "scramble",
+  "kind": "dt",
+  "report": [
+    {
+      "dt": 0.002,
+      "tail_median": 0.05586001185243372,
+      "runs": 3
+    },
+    {
+      "dt": 0.0025,
+      "tail_median": 0.06425112628018237,
+      "runs": 3
+    },
+    {
+      "dt": 0.003,
+      "tail_median": 0.06556549940153733,
+      "runs": 3
+    },
+    {
+      "dt": 0.0035,
+      "tail_median": 0.05293466397330038,
+      "runs": 3
+    }
+  ],
+  "meta": {
+    "epochs": 1,
+    "seeds": 3,
+    "mass_mode": "precond"
+  }
+}

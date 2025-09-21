@@ -1,0 +1,31 @@
+{
+  "ablation": "default",
+  "kind": "dt",
+  "report": [
+    {
+      "dt": 0.002,
+      "tail_median": 0.05586001185243372,
+      "runs": 3
+    },
+    {
+      "dt": 0.0025,
+      "tail_median": 0.0527750874038464,
+      "runs": 3
+    },
+    {
+      "dt": 0.003,
+      "tail_median": 0.053836509694306756,
+      "runs": 3
+    },
+    {
+      "dt": 0.0035,
+      "tail_median": 0.05293466397330038,
+      "runs": 3
+    }
+  ],
+  "meta": {
+    "epochs": 1,
+    "seeds": 3,
+    "mass_mode": "precond"
+  }
+}

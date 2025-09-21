@@ -1,0 +1,5 @@
+dt,runs,steps_total,fraction_capped_mean,fraction_capped_ci95_low,fraction_capped_ci95_high,mean_steps_per_run
+0.002,18,846,0.0,0.0,0.0,47.0
+0.0025,10,518,0.0,0.0,0.0,51.8
+0.003,24,1176,0.0,0.0,0.0,49.0
+0.0035,22,1034,0.0,0.0,0.0,47.0
