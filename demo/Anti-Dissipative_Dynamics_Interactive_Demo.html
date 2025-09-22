@@ -1,3 +1,6 @@
+Morning, Axel. I took your uploaded HTML and replaced every em/en dash (—, –) with a plain hyphen (-).&#x20;
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +9,7 @@
     name="viewport"
     content="width=device-width, initial-scale=1, viewport-fit=cover"
   />
-  <title>Anti-Dissipative Dynamics in Neural Network Optimization — Demo</title>
+  <title>Anti-Dissipative Dynamics in Neural Network Optimization - Demo</title>
   <meta name="color-scheme" content="dark light" />
   <style>
     :root {
@@ -433,7 +436,7 @@
       <div class="canvas-grid">
         <figure class="canvas-card">
           <figcaption>
-            <span>SGD (Euler) — Energy vs. Time</span>
+            <span>SGD (Euler) - Energy vs. Time</span>
             <span class="hint">V(t)</span>
           </figcaption>
           <canvas id="sgdCanvas" class="plot" data-height="220"></canvas>
@@ -441,7 +444,7 @@
 
         <figure class="canvas-card">
           <figcaption>
-            <span>AdamW (toy) — Energy vs. Time</span>
+            <span>AdamW (toy) - Energy vs. Time</span>
             <span class="hint">V(t)</span>
           </figcaption>
           <canvas id="adamCanvas" class="plot" data-height="220"></canvas>
@@ -449,7 +452,7 @@
 
         <figure class="canvas-card canvas-wide">
           <figcaption>
-            <span>Symplectic Leapfrog — Total Energy vs. Time</span>
+            <span>Symplectic Leapfrog - Total Energy vs. Time</span>
             <span class="hint">H(t) = K + V</span>
           </figcaption>
           <canvas id="sympCanvas" class="plot" data-height="220" aria-describedby="sympNote"></canvas>
@@ -467,20 +470,20 @@
       <!-- Stats -->
       <div class="stats">
         <div class="stat-card" id="sgdCard" role="group" aria-label="SGD drift statistics">
-          <div class="stat-label">SGD Drift Slope (log–log)</div>
-          <div class="stat-value sgd-value" id="sgdSlope">—</div>
+          <div class="stat-label">SGD Drift Slope (log-log)</div>
+          <div class="stat-value sgd-value" id="sgdSlope">-</div>
           <div class="stat-ci" id="sgdCI" aria-label="95% CI"></div>
         </div>
 
         <div class="stat-card" id="adamCard" role="group" aria-label="AdamW drift statistics">
-          <div class="stat-label">AdamW Drift Slope (log–log)</div>
-          <div class="stat-value adam-value" id="adamSlope">—</div>
+          <div class="stat-label">AdamW Drift Slope (log-log)</div>
+          <div class="stat-value adam-value" id="adamSlope">-</div>
           <div class="stat-ci" id="adamCI" aria-label="95% CI"></div>
         </div>
 
         <div class="stat-card" id="sympCard" role="group" aria-label="Symplectic drift statistics">
-          <div class="stat-label">Symplectic Drift Slope (log–log)</div>
-          <div class="stat-value symp-value" id="sympSlope">—</div>
+          <div class="stat-label">Symplectic Drift Slope (log-log)</div>
+          <div class="stat-value symp-value" id="sympSlope">-</div>
           <div class="stat-ci" id="sympCI" aria-label="95% CI"></div>
         </div>
       </div>
@@ -490,8 +493,8 @@
         <h3>What You're Seeing</h3>
         <p><strong>The discovery.</strong> Click <em>Measure Slopes</em> to estimate drift scaling across <code class="k">dt ∈ [0.002, 0.0035]</code>. With mass preconditioning, symplectic leapfrog can show a negative slope in this band (larger steps, smaller drift).</p>
         <p><strong>Units.</strong> This is a toy 2-D system for illustration; energy units here are arbitrary and act as a proxy for the paper's tail-median |ΔH| in nats.</p>
-        <p><strong>The physics.</strong> In this band, <strong>larger</strong> integration steps actually yield <strong>better</strong> energy conservation (drift slope &lt; 0). That's the inverse of first-order methods (SGD, AdamW), which typically show a positive slope.</p>
-        <p><strong>The experiment.</strong> Adjust σ and re-measure. The negative trend persists across noise levels—evidence that this is a robust property of the dynamics, not a numerical illusion.</p>
+        <p><strong>The physics.</strong> In this band, <strong>larger</strong> integration steps actually yield <strong>better</strong> energy conservation (drift slope < 0). That's the inverse of first-order methods (SGD, AdamW), which typically show a positive slope.</p>
+        <p><strong>The experiment.</strong> Adjust σ and re-measure. The negative trend persists across noise levels - evidence that this is a robust property of the dynamics, not a numerical illusion.</p>
       </div>
     </section>
   </main>
@@ -884,8 +887,8 @@
         status.textContent = `✨ Negative drift scaling confirmed for Symplectic: ${fmt(rSymp.slope)} (R² = ${rSymp.R2.toFixed(3)}).`;
       } else {
         status.textContent = okFit
-          ? 'Measurement complete — no negative slope detected this run.'
-          : 'Measurement complete — fit is weak; try a different σ.';
+          ? 'Measurement complete - no negative slope detected this run.'
+          : 'Measurement complete - fit is weak; try a different σ.';
       }
       status.removeAttribute('aria-busy');
 
@@ -923,3 +926,4 @@
   </script>
 </body>
 </html>
+```
