@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Symplectic Drift Analyzer - dt* Boundary Bisection</title>
+  <meta name="color-scheme" content="dark light" />
+  <style>
+    :root{
+      --bg:#0b1020; --panel: color-mix(in oklab,#fff 10%,transparent);
+      --border: color-mix(in oklab,#fff 16%,transparent);
+      --text:#e5e7eb; --muted:#9aa4b2; --brand:#60a5fa; --accent:#34d399;
+      --bad:#ef4444; --good:#22c55e; --warn:#f59e0b;
+      --shadow: 0 8px 28px rgba(0,0,0,.35); --radius:14px;
+    }
+    @media (prefers-color-scheme: light){
+      :root{ --bg:#f8fafc; --panel:#fff; --border:#e5e7eb; --text:#0b1020; --muted:#475569; --shadow:0 6px 18px rgba(2,6,23,.1) }
+    }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0;padding:clamp(14px,2vw,22px);background:
+      radial-gradient(1000px 600px at 10% -10%, color-mix(in oklab, var(--brand) 22%, transparent), transparent 55%),
+      linear-gradient(180deg, color-mix(in oklab, var(--bg) 95%, #000 0%), var(--bg));
+      color:var(--text);font:500 16px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
+    .wrap{max-width:1200px;margin:0 auto}
+    header{ text-align:center; margin-bottom:16px }
+    h1{ margin:0 0 6px; font-weight:900; font-size:clamp(1.4rem,1rem + 2.2vw,2.2rem) }
+    p.lead{ margin:0 auto; max-width:70ch; color:var(--muted) }
+    .panel{ background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px; margin:12px 0 }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:center }
+    .btn{ border:1px solid color-mix(in oklab, var(--brand) 45%, transparent);
+      background:linear-gradient(180deg, color-mix(in oklab, var(--brand) 16%, #fff 0), color-mix(in oklab, var(--brand) 6%, #fff 0));
+      color:#0b1020; font-weight:800; padding:9px 14px; border-radius:999px; cursor:pointer; box-shadow:0 3px 10px rgba(0,0,0,.18);
+      transition: transform .1s ease, box-shadow .12s ease }
+    .btn:hover{ transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,0,0,.24) }
+    .btn:disabled{ opacity:.6; cursor:not-allowed }
+    .btn.secondary{
+      background:linear-gradient(180deg, color-mix(in oklab, var(--accent) 15%, #fff 0), color-mix(in oklab, var(--accent) 6%, #fff 0));
+      border-color:color-mix(in oklab, var(--accent) 45%, transparent);
+    }
+    .btn.danger{
+      background:linear-gradient(180deg, color-mix(in oklab, var(--bad) 15%, #fff 0), color-mix(in oklab, var(--bad) 6%, #fff 0));
+      border-color:color-mix(in oklab, var(--bad) 45%, transparent);
+    }
+    .grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
+    @media (max-width:900px){ .grid{ grid-template-columns:1fr } }
+    .card{ border:1px solid var(--border); border-radius:12px; padding:10px; background:color-mix(in oklab, #fff 6%, transparent) }
+    .card h3{ margin:4px 0 8px; font-size:1.05rem }
+    canvas{ display:block; width:100%; height:240px; background:#fff; border-radius:10px }
+    .slider{ display:grid; grid-template-columns:auto min(320px,60vw) auto; gap:10px; align-items:center;
+      border:1px solid color-mix(in oklab, var(--brand) 18%, transparent); padding:8px 10px; border-radius:12px; background:color-mix(in oklab, var(--brand) 8%, transparent) }
+    .slider label{ color:var(--muted); font-size:.95rem } .slider output{ min-width:6ch; text-align:right; font-variant-numeric:tabular-nums; font-weight:900; color:var(--accent) }
+    input[type=range]{ width:100%; background:transparent }
+    input[type=range]::-webkit-slider-runnable-track{ height:6px; border-radius:999px; background:color-mix(in oklab, var(--brand) 22%, transparent) }
+    input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:18px; height:18px; border-radius:50%; margin-top:-6px; background:var(--accent); border:2px solid #0b1020 }
+    input[type=range]::-moz-range-track{ height:6px; border-radius:999px; background:color-mix(in oklab, var(--brand) 22%, transparent) }
+    input[type=range]::-moz-range-thumb{ width:18px; height:18px; border-radius:50%; background:var(--accent); border:2px solid #0b1020 }
+    .hint{ color:var(--muted); font-size:.9rem; text-align:center; margin-top:6px }
+    .stats{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:10px }
+    @media (max-width:800px){ .stats{ grid-template-columns:1fr 1fr } }
+    .stat{ border:1px solid var(--border); border-radius:10px; padding:8px 10px; background:color-mix(in oklab, #fff 6%, transparent) }
+    .label{ color:var(--muted); font-size:.85rem } .value{ font-size:1.25rem; font-weight:900 }
+    .progress{ height:22px; border-radius:12px; background:var(--border); overflow:hidden; margin:10px 0 }
+    .fill{ height:100%; background:linear-gradient(90deg, var(--brand), var(--accent)); width:0%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:.85rem }
+    table{ width:100%; border-collapse:collapse } th,td{ padding:8px 10px; text-align:left; border-bottom:1px solid var(--border) }
+    th{ background:color-mix(in oklab, var(--brand) 10%, transparent) } tr:hover{ background:color-mix(in oklab, var(--brand) 5%, transparent) }
+    .anti{ color:var(--good); font-weight:700 } .diss{ color:var(--bad) }
+    .k{ background:color-mix(in oklab, var(--brand) 12%, transparent); padding:1px 6px; border-radius:6px }
+    .pill{ padding:4px 8px; border-radius:999px; font-weight:800 }
+    .pill.green{ background:color-mix(in oklab, var(--good) 50%, transparent); color:#0b1020 }
+    .pill.gray{ background:color-mix(in oklab, var(--muted) 40%, transparent); color:#0b1020 }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Symplectic Drift Analyzer</h1>
+      <p class="lead">Single-purpose tool to find the dt* boundary where drift flips sign in a leapfrog integrator.</p>
+    </header>
+
+    <!-- Manual playground -->
+    <section class="panel">
+      <div class="row">
+        <button id="startBtn" class="btn" type="button" aria-pressed="false">▶ Start</button>
+        <button id="stepBtn" class="btn" type="button">➤ Step</button>
+        <button id="resetBtn" class="btn" type="button">↻ Reset</button>
+        <button id="setE0Btn" class="btn" type="button">Set E₀ = H(t)</button>
+        <span id="runBadge" class="pill gray" aria-live="polite">Paused</span>
+      </div>
+      <div class="row">
+        <div class="slider">
+          <label for="dt">Step size dt</label>
+          <input id="dt" type="range" min="0.0005" max="0.0100" step="0.0005" value="0.0025" />
+          <output id="dtOut">0.0025</output>
+        </div>
+        <div class="slider">
+          <label for="mass">Mass m</label>
+          <input id="mass" type="range" min="0.20" max="1.00" step="0.01" value="0.35" />
+          <output id="massOut">0.35</output>
+        </div>
+        <div class="slider">
+          <label for="sigma">Noise σ</label>
+          <input id="sigma" type="range" min="0.00" max="0.50" step="0.01" value="0.20" />
+          <output id="sigmaOut">0.20</output>
+        </div>
+        <div class="slider">
+          <label for="seed">Seed</label>
+          <input id="seed" type="range" min="0" max="50" step="1" value="0" />
+          <output id="seedOut">0</output>
+        </div>
+        <div class="row" style="justify-content:center">
+          <label for="noiseModel" class="label">Noise channel</label>
+          <select id="noiseModel" aria-label="Noise model">
+            <option value="none">None</option>
+            <option value="gradient" selected>Gradient</option>
+            <option value="momentum">Momentum</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="card"><h3>Hamiltonian H(t)</h3><canvas id="hCanvas"></canvas></div>
+        <div class="card"><h3>ΔH(t) = H(t) − H₀</h3><canvas id="dCanvas"></canvas></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="label">H₀ (baseline)</div><div id="h0" class="value">-</div></div>
+        <div class="stat"><div class="label">H(t)</div><div id="ht" class="value">-</div></div>
+        <div class="stat"><div class="label">ΔH(t)</div><div id="dh" class="value">-</div></div>
+        <div class="stat"><div class="label">Rel. error |ΔH|/H₀</div><div id="rel" class="value">-</div></div>
+      </div>
+      <p id="status" class="hint" role="status">Tip: set σ = 0 (no noise) and press ▶ Start - H(t) should stay almost flat (energy conserved).</p>
+    </section>
+
+    <!-- Bisection boundary finder -->
+    <section class="panel">
+      <h2 style="margin:0 0 6px">Find the dt* Boundary (bisection)</h2>
+      <p class="hint">dt* is where the sign of mean tail drift flips (negative ↔ positive). You must <em>bracket</em> it: pick dt lower/upper that give opposite-sign drift.</p>
+      <div class="row">
+        <label>dt lower <input id="dtLower" type="number" step="0.0001" min="0.0001" max="0.0500" value="0.0022"></label>
+        <label>dt upper <input id="dtUpper" type="number" step="0.0001" min="0.0001" max="0.0500" value="0.0028"></label>
+        <label>tolerance <input id="tol" type="number" step="0.00001" min="0.000005" max="0.0100" value="0.00002"></label>
+        <label>steps/run <input id="steps" type="number" min="100" max="5000" step="50" value="500"></label>
+        <label>seeds <input id="seeds" type="number" min="1" max="50" step="1" value="10"></label>
+        <label>Mass m <input id="bisMass" type="number" step="0.01" min="0.20" max="1.50" value="0.35"></label>
+        <label>σ <input id="bisSigma" type="number" step="0.01" min="0" max="1" value="0.20"></label>
+        <label>Noise 
+          <select id="bisNoise">
+            <option value="gradient" selected>Gradient</option>
+            <option value="momentum">Momentum</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <button id="runBisect" class="btn secondary">🎯 Find dt* Boundary</button>
+        <button id="cancelBisect" class="btn danger" disabled>✕ Cancel</button>
+        <span id="bisectMsg" class="hint"></span>
+      </div>
+      <div class="progress"><div class="fill" id="progFill"><span id="progText">0%</span></div></div>
+      <div class="card">
+        <h3 style="margin:4px 0 8px">Trials</h3>
+        <div style="max-height:280px; overflow:auto; border:1px solid var(--border); border-radius:10px">
+          <table>
+            <thead><tr><th>dt</th><th>mean ΔH (tail)</th><th>std (across seeds)</th><th>seeds</th><th>regime</th></tr></thead>
+            <tbody id="trials"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+  'use strict';
+
+  // ---------- Utilities ----------
+  function mulberry32(a){ return function(){ let t=a+=0x6D2B79F5; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; } }
+  function Normal(seed){
+    const rng = seed==null ? Math.random : mulberry32(seed>>>0);
+    let spare=null;
+    return function(){
+      if(spare!=null){ const z=spare; spare=null; return z; }
+      let u=0,v=0; while(u===0) u=rng(); while(v===0) v=rng();
+      const mag=Math.sqrt(-2*Math.log(u)), th=2*Math.PI*v;
+      spare=mag*Math.sin(th); return mag*Math.cos(th);
+    }
+  }
+  function mean(a){ return a.reduce((x,y)=>x+y,0)/a.length }
+  function std(a){ const m=mean(a); return Math.sqrt(mean(a.map(x=>(x-m)**2))) }
+  function median(a){ const s=[...a].sort((x,y)=>x-y); const n=s.length, m=n>>1; return n%2 ? s[m] : 0.5*(s[m-1]+s[m]) }
+
+  function sizeCanvasForDisplay(canvas){
+    const ratio = Math.max(1, window.devicePixelRatio||1);
+    const cssW = canvas.clientWidth;
+    const cssH = parseFloat(getComputedStyle(canvas).height)||canvas.height||200;
+    if(canvas.width!==Math.floor(cssW*ratio) || canvas.height!==Math.floor(cssH*ratio)){
+      canvas.width = Math.max(1, Math.floor(cssW*ratio));
+      canvas.height = Math.max(1, Math.floor(cssH*ratio));
+      canvas.getContext('2d').setTransform(ratio,0,0,ratio,0,0);
+    }
+    return { width: cssW, height: cssH };
+  }
+
+  function drawSeries(ctx, data, color, w, h){
+    ctx.clearRect(0,0,w,h);
+    ctx.save();
+    ctx.strokeStyle='rgba(120,120,120,0.25)'; ctx.lineWidth=1;
+    for(let i=0;i<=4;i++){ ctx.beginPath(); ctx.moveTo(0,(i/4)*h); ctx.lineTo(w,(i/4)*h); ctx.stroke(); }
+    ctx.restore();
+    if(data.length<2) return;
+    let min=data[0], max=data[0];
+    for(let i=1;i<data.length;i++){ if(data[i]<min)min=data[i]; if(data[i]>max)max=data[i]; }
+    const pad=(max-min)*0.08||1e-6; min-=pad; max+=pad; const rng=Math.max(1e-12,max-min);
+    ctx.beginPath(); ctx.lineWidth=2; ctx.strokeStyle=color;
+    for(let i=0;i<data.length;i++){ const x=(i/(data.length-1))*w; const y=h-((data[i]-min)/rng)*h; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+    ctx.stroke();
+  }
+
+  // ---------- Symplectic system ----------
+  class SymplecticOnly {
+    constructor(){
+      this.x=[1.0,0.0]; this.p=[0.0,1.0];
+      this.m=0.35; this.dt=0.0025; this.sigma=0.20; this.noiseModel='gradient';
+      this.seed=0; this.normal=Normal(0);
+      this.t=0; this.h0=this.H(); this.hTrace=[]; this.dTrace=[]; this.maxTrace=3000;
+    }
+    setMass(m){ this.m=Math.max(1e-6,m) }
+    setDt(dt){ this.dt=dt }
+    setSigma(s){ this.sigma=Math.max(0,s) }
+    setNoiseModel(kind){ this.noiseModel=kind||'none' }
+    setSeed(seed){ this.seed=seed; this.normal=Normal(seed) }
+    V(x=this.x){ return 0.5*(x[0]*x[0]+x[1]*x[1]) }
+    gradV(x=this.x){ return [x[0],x[1]] }
+    K(p=this.p){ return 0.5*(p[0]*p[0]+p[1]*p[1])/this.m }
+    H(){ return this.K()+this.V() }
+    setE0Now(){ this.h0=this.H() }
+    reset(){ this.x=[1.0,0.0]; this.p=[0.0,1.0]; this.t=0; this.h0=this.H(); this.hTrace.length=0; this.dTrace.length=0; this.normal=Normal(this.seed) }
+    leapfrogStep(){
+      const dt=this.dt, invm=1/this.m;
+      let [gx,gy]=this.gradV(this.x);
+      if(this.noiseModel==='gradient' && this.sigma>0){
+        const s=Math.sqrt(dt)*this.sigma; gx += s*this.normal(); gy += s*this.normal();
+      }
+      // half momentum
+      this.p[0]-=0.5*dt*gx; this.p[1]-=0.5*dt*gy;
+      // position
+      this.x[0]+=dt*invm*this.p[0]; this.x[1]+=dt*invm*this.p[1];
+      // gradient at new position
+      let [gx2,gy2]=this.gradV(this.x);
+      if(this.noiseModel==='gradient' && this.sigma>0){
+        const s=Math.sqrt(dt)*this.sigma; gx2 += s*this.normal(); gy2 += s*this.normal();
+      }
+      // second half momentum
+      this.p[0]-=0.5*dt*gx2; this.p[1]-=0.5*dt*gy2;
+      // momentum noise kick (Langevin-ish)
+      if(this.noiseModel==='momentum' && this.sigma>0){
+        const s=Math.sqrt(dt)*this.sigma; this.p[0]+=s*this.normal(); this.p[1]+=s*this.normal();
+      }
+      this.t+=dt; const h=this.H(); const d=h-this.h0;
+      this.hTrace.push(h); this.dTrace.push(d);
+      if(this.hTrace.length>this.maxTrace){ this.hTrace.shift(); this.dTrace.shift(); }
+      return {h,d}
+    }
+    runSteps(n){ for(let i=0;i<n;i++) this.leapfrogStep() }
+    measureDrift(steps=500, tailFraction=0.2){
+      this.reset(); this.runSteps(steps);
+      const tailStart=Math.floor(steps*(1-tailFraction)); const tail=this.dTrace.slice(tailStart);
+      const perSeedMean = mean(tail);
+      return { mean: perSeedMean, std: std(tail), median: median(tail), final: this.dTrace[this.dTrace.length-1] }
+    }
+  }
+
+  // ---------- App wiring (manual) ----------
+  const hCanvas=document.getElementById('hCanvas'), dCanvas=document.getElementById('dCanvas');
+  const hCtx=hCanvas.getContext('2d'), dCtx=dCanvas.getContext('2d');
+  const sys=new SymplecticOnly();
+  const startBtn=document.getElementById('startBtn');
+  const elements={
+    dt:document.getElementById('dt'), dtOut:document.getElementById('dtOut'),
+    mass:document.getElementById('mass'), massOut:document.getElementById('massOut'),
+    sigma:document.getElementById('sigma'), sigmaOut:document.getElementById('sigmaOut'),
+    seed:document.getElementById('seed'), seedOut:document.getElementById('seedOut'),
+    noiseModel:document.getElementById('noiseModel'),
+    h0:document.getElementById('h0'), ht:document.getElementById('ht'), dh:document.getElementById('dh'), rel:document.getElementById('rel'),
+    status:document.getElementById('status'), runBadge:document.getElementById('runBadge')
+  };
+  function syncFromUI(){
+    sys.setDt(parseFloat(elements.dt.value)); elements.dtOut.textContent=sys.dt.toFixed(4);
+    sys.setMass(parseFloat(elements.mass.value)); elements.massOut.textContent=sys.m.toFixed(2);
+    sys.setSigma(parseFloat(elements.sigma.value)); elements.sigmaOut.textContent=sys.sigma.toFixed(2);
+    sys.setSeed(parseInt(elements.seed.value,10)); elements.seedOut.textContent=String(sys.seed);
+    sys.setNoiseModel(elements.noiseModel.value);
+  }
+  ['dt','mass','sigma','seed'].forEach(id=>{
+    const el=elements[id]; el.addEventListener('input',()=>{ syncFromUI(); });
+  });
+  elements.noiseModel.addEventListener('change',()=>{ syncFromUI(); });
+  syncFromUI();
+
+  let raf=null;
+  function updatePlots(){
+    const H=sys.H(), d=H-sys.h0, rel=Math.abs(sys.h0)>0?Math.abs(d)/Math.abs(sys.h0):0;
+    const hsize=sizeCanvasForDisplay(hCanvas); const dsize=sizeCanvasForDisplay(dCanvas);
+    drawSeries(hCtx, sys.hTrace, '#2563eb', hsize.width, hsize.height);
+    drawSeries(dCtx, sys.dTrace, '#10b981', dsize.width, dsize.height);
+    elements.h0.textContent=sys.h0.toFixed(6);
+    elements.ht.textContent=H.toFixed(6);
+    elements.dh.textContent=(d>=0?'+':'')+d.toFixed(6);
+    elements.rel.textContent=rel.toExponential(3);
+  }
+  function stepOnce(){ sys.leapfrogStep(); updatePlots(); }
+  function start(){ if(raf) return; elements.runBadge.textContent='Running'; elements.runBadge.className='pill green'; startBtn.setAttribute('aria-pressed','true'); raf=requestAnimationFrame(function loop(){ stepOnce(); raf=requestAnimationFrame(loop); }); }
+  function pause(){ if(raf){ cancelAnimationFrame(raf); raf=null; } elements.runBadge.textContent='Paused'; elements.runBadge.className='pill gray'; startBtn.setAttribute('aria-pressed','false'); }
+  startBtn.addEventListener('click',()=> raf?pause():start());
+  document.getElementById('stepBtn').addEventListener('click',()=>{ pause(); stepOnce(); });
+  document.getElementById('resetBtn').addEventListener('click',()=>{ pause(); sys.reset(); updatePlots(); });
+  document.getElementById('setE0Btn').addEventListener('click',()=>{ sys.setE0Now(); updatePlots(); });
+
+  window.addEventListener('resize',updatePlots,{passive:true});
+  // initial draw
+  sys.reset(); updatePlots();
+
+  // ---------- Bisection boundary ----------
+  const bEls={
+    dtLower:document.getElementById('dtLower'),
+    dtUpper:document.getElementById('dtUpper'),
+    tol:document.getElementById('tol'),
+    steps:document.getElementById('steps'),
+    seeds:document.getElementById('seeds'),
+    bisMass:document.getElementById('bisMass'),
+    bisSigma:document.getElementById('bisSigma'),
+    bisNoise:document.getElementById('bisNoise'),
+    runBtn:document.getElementById('runBisect'),
+    cancelBtn:document.getElementById('cancelBisect'),
+    msg:document.getElementById('bisectMsg'),
+    progFill:document.getElementById('progFill'),
+    progText:document.getElementById('progText'),
+    trials:document.getElementById('trials')
+  };
+
+  let cancelFlag=false;
+  bEls.cancelBtn.addEventListener('click',()=>{ cancelFlag=true; bEls.cancelBtn.disabled=true; bEls.msg.textContent='Cancelling…'; });
+
+  function clearTrials(){ bEls.trials.innerHTML=''; }
+  function addTrialRow(dt, meanDH, stdDH, seeds, regime){
+    const tr=document.createElement('tr');
+    const td=(t)=>{ const d=document.createElement('td'); d.textContent=t; tr.appendChild(d); return d; };
+    td(dt.toFixed(5));
+    td((meanDH>=0?'+':'')+meanDH.toExponential(3));
+    td(stdDH.toExponential(2));
+    td(String(seeds));
+    const r=td(regime==='anti'?'Anti-dissipative':'Dissipative'); r.className=regime==='anti'?'anti':'diss';
+    bEls.trials.appendChild(tr);
+  }
+
+  async function evalAtDt(dt, steps, seeds, mass, sigma, noise){
+    const perSeedMeans=[];
+    for(let s=0;s<seeds;s++){
+      const sys2=new SymplecticOnly();
+      sys2.setDt(dt); sys2.setMass(mass); sys2.setSigma(sigma); sys2.setNoiseModel(sigma>0?noise:'none'); sys2.setSeed(s);
+      const result=sys2.measureDrift(steps,0.2);
+      perSeedMeans.push(result.mean);
+      if(cancelFlag) break;
+      // let UI breathe
+      await new Promise(r=>setTimeout(r,0));
+    }
+    const m=mean(perSeedMeans), sd=perSeedMeans.length>1?std(perSeedMeans):0;
+    return {mean:m, std:sd, regime: m>0 ? 'anti' : 'diss'};
+  }
+
+  function updateProgress(p){
+    const pct=Math.max(0,Math.min(1,p)); bEls.progFill.style.width=(pct*100).toFixed(1)+'%';
+    bEls.progText.textContent=(pct*100).toFixed(0)+'%';
+  }
+
+  async function runBisection(){
+    cancelFlag=false; clearTrials(); updateProgress(0);
+    bEls.msg.textContent='Starting…';
+    bEls.runBtn.disabled=true; bEls.cancelBtn.disabled=false;
+
+    // read params
+    let lo=parseFloat(bEls.dtLower.value), hi=parseFloat(bEls.dtUpper.value);
+    const tol=parseFloat(bEls.tol.value);
+    const steps=parseInt(bEls.steps.value,10);
+    const seeds=parseInt(bEls.seeds.value,10);
+    const mass=parseFloat(bEls.bisMass.value);
+    const sigma=parseFloat(bEls.bisSigma.value);
+    const noise=bEls.bisNoise.value;
+
+    if(!(lo>0 && hi>0 && hi>lo)){ bEls.msg.textContent='Please enter valid numbers: dt upper must be > dt lower.'; bEls.runBtn.disabled=false; bEls.cancelBtn.disabled=true; return; }
+
+    // Evaluate endpoints
+    let left=await evalAtDt(lo,steps,seeds,mass,sigma,noise); if(cancelFlag) return finalize('Cancelled.');
+    addTrialRow(lo,left.mean,left.std,seeds,left.regime);
+    let right=await evalAtDt(hi,steps,seeds,mass,sigma,noise); if(cancelFlag) return finalize('Cancelled.');
+    addTrialRow(hi,right.mean,right.std,seeds,right.regime);
+
+    // Try to bracket if same sign
+    if((left.mean>=0 && right.mean>=0) || (left.mean<0 && right.mean<0)){
+      bEls.msg.textContent='Endpoints have the same sign; scanning to find a bracket…';
+      const N=10; let found=false, dStep=(hi-lo)/N, prev=left, prevDt=lo;
+      // Scan interior points only (avoid duplicate evaluation at hi)
+      for(let i=1;i<N;i++){
+        const testDt = lo + i*dStep;
+        const r = await evalAtDt(testDt,steps,seeds,mass,sigma,noise); if(cancelFlag) return finalize('Cancelled.');
+        addTrialRow(testDt,r.mean,r.std,seeds,r.regime);
+        if((prev.mean<0 && r.mean>=0) || (prev.mean>=0 && r.mean<0)){ lo=prevDt; left=prev; hi=testDt; right=r; found=true; break; }
+        prev=r; prevDt=testDt;
+        updateProgress(i/N*0.25);
+      }
+      // If not found, check crossing between last interior test and the already-computed right endpoint
+      if(!found){
+        if((prev.mean<0 && right.mean>=0) || (prev.mean>=0 && right.mean<0)){
+          lo=prevDt; left=prev; /* keep hi/right */
+          found=true;
+        }
+      }
+      // Finish the scan phase progress
+      updateProgress(0.25);
+      if(!found){ return finalize('Could not find a sign flip in the range; widen the bracket and try again.'); }
+    }
+
+    // Now we have a bracket [lo,hi] with opposite signs
+    bEls.msg.textContent='Bracketing ok - running bisection...';
+    const itersMax = Math.ceil(Math.log2((hi-lo)/tol))+2;
+    let iter=0;
+
+    while(hi-lo>tol && !cancelFlag){
+      const mid=(lo+hi)/2;
+      const midRes=await evalAtDt(mid,steps,seeds,mass,sigma,noise); if(cancelFlag) return finalize('Cancelled.');
+      addTrialRow(mid,midRes.mean,midRes.std,seeds,midRes.regime);
+
+      // Decide which side to keep: keep the interval where the sign flips
+      if((left.mean<0 && midRes.mean>=0) || (left.mean>=0 && midRes.mean<0)){
+        hi=mid; right=midRes;
+      }else{
+        lo=mid; left=midRes;
+      }
+      iter++;
+      const progress = 0.25 + 0.75*Math.min(1, iter/itersMax);
+      updateProgress(progress);
+      bEls.msg.textContent = `Estimated dt* ≈ ${( (lo+hi)/2 ).toFixed(5)} (width ${ (hi-lo).toExponential(2) }).`;
+      await new Promise(r=>setTimeout(r,0));
+    }
+
+    if(cancelFlag) return finalize('Cancelled.');
+    const est=(lo+hi)/2, width=hi-lo;
+    return finalize(`Estimated dt* ≈ ${est.toFixed(5)} (width ${width.toExponential(2)}). Try lowering tolerance for a tighter bound.`);
+
+    function finalize(message){
+      bEls.msg.textContent=message;
+      bEls.runBtn.disabled=false; bEls.cancelBtn.disabled=true;
+      if(!cancelFlag) updateProgress(1);
+      return;
+    }
+  }
+
+  document.getElementById('runBisect').addEventListener('click', ()=>{ runBisection(); });
+  </script>
+</body>
+</html>
